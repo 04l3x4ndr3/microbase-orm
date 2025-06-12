@@ -1,6 +1,7 @@
 // QueryBuilder.js
 import MySQLDriver from './drivers/MySQLDriver.js';
 import PostgreSQLDriver from './drivers/PostgreSQLDriver.js';
+import MariadbDriver from "./drivers/MariadbDriver.js";
 
 class QueryBuilder {
     constructor(connection, driverType, config = {}) {
@@ -14,6 +15,8 @@ class QueryBuilder {
         switch (driverType) {
             case 'mysql':
                 return new MySQLDriver(this.connection, config);
+            case 'mariadb':
+                return new MariadbDriver(this.connection, config);
             case 'postgres':
                 return new PostgreSQLDriver(this.connection, config);
             default:
