@@ -37,7 +37,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/04l3x4ndr3/microbase-orm.git"
+    "url": "git+https://github.com/04l3x4ndr3/microbase-orm.git"
   },
   "bugs": {
     "url": "https://github.com/04l3x4ndr3/microbase-orm/issues"
