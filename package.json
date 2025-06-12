@@ -1,6 +1,6 @@
 {
   "name": "microbase-orm",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Um micro ORM em JavaScript ES6 inspirado no CodeIgniter 3 Query Builder com suporte para MySQL/MariaDB e PostgreSQL",
   "main": "src/index.js",
   "type": "module",
