@@ -1,0 +1,68 @@
+{
+  "name": "microbase-orm",
+  "version": "1.0.0",
+  "description": "Um micro ORM em JavaScript ES6 inspirado no CodeIgniter 3 Query Builder com suporte para MySQL/MariaDB e PostgreSQL",
+  "main": "src/index.js",
+  "type": "module",
+  "scripts": {
+    "test": "node tests/basic.test.js",
+    "build": "tsc",
+    "lint": "echo 'Linting não configurado ainda'",
+    "prepublishOnly": "npm run test && npm run build",
+    "release:patch": "npm version patch && git push origin main --tags",
+    "release:minor": "npm version minor && git push origin main --tags",
+    "release:major": "npm version major && git push origin main --tags"
+  },
+  "keywords": [
+    "orm",
+    "query-builder",
+    "mysql",
+    "postgresql",
+    "mariadb",
+    "database",
+    "sql",
+    "codeigniter",
+    "javascript",
+    "es6",
+    "nodejs"
+  ],
+  "author": {
+    "name": "04l3x4ndr3",
+    "url": "https://github.com/04l3x4ndr3"
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/04l3x4ndr3/microbase-orm.git"
+  },
+  "bugs": {
+    "url": "https://github.com/04l3x4ndr3/microbase-orm/issues"
+  },
+  "homepage": "https://github.com/04l3x4ndr3/microbase-orm#readme",
+  "engines": {
+    "node": ">=14.0.0"
+  },
+  "peerDependencies": {
+    "mysql2": "^3.0.0",
+    "pg": "^8.0.0"
+  },
+  "peerDependenciesMeta": {
+    "mysql2": {
+      "optional": true
+    },
+    "pg": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "mysql2": "^3.6.5",
+    "pg": "^8.11.3"
+  },
+  "files": [
+    "src/",
+    "examples/",
+    "README.md",
+    "LICENSE",
+    "CHANGELOG.md"
+  ]
+}

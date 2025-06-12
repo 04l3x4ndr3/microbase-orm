@@ -1,0 +1,36 @@
+# Arquivos de desenvolvimento
+tests/
+.github/
+.vscode/
+.idea/
+
+# Arquivos de configuração
+.gitignore
+.eslintrc*
+.prettierrc*
+tsconfig.json
+
+# Arquivos de documentação de desenvolvimento
+CONTRIBUTING.md
+docs/
+
+# Arquivos de build/CI
+.travis.yml
+.circleci/
+.github/
+
+# Logs
+*.log
+
+# Arquivos temporários
+*.tmp
+*.temp
+
+# Editor files
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
