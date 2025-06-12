@@ -1,8 +1,10 @@
 # MicroBase ORM JavaScript ES6
-[![NPM Version](https://img.shields.io/npm/v/microbase-orm.svg)](https://www.npmjs.com/package/microbase-orm)
-[![NPM Downloads](https://img.shields.io/npm/dm/microbase-orm.svg)](https://www.npmjs.com/package/microbase-orm)
+[![NPM Version](https://img.shields.io/npm/v/@04l3x4ndr3/microbase-orm.svg)](https://www.npmjs.com/package/@04l3x4ndr3/microbase-orm)
+[![NPM Downloads](https://img.shields.io/npm/dm/@04l3x4ndr3/microbase-orm.svg)](https://www.npmjs.com/package/@04l3x4ndr3/microbase-orm)
 [![GitHub License](https://img.shields.io/github/license/04l3x4ndr3/microbase-orm.svg)](https://github.com/04l3x4ndr3/microbase-orm/blob/main/LICENSE)
 [![GitHub Issues](https://img.shields.io/github/issues/04l3x4ndr3/microbase-orm.svg)](https://github.com/04l3x4ndr3/microbase-orm/issues)
+[![Build Status](https://img.shields.io/github/actions/workflow/status/04l3x4ndr3/microbase-orm/ci.yml?branch=main)](https://github.com/04l3x4ndr3/microbase-orm/actions)
+[![Node.js Version](https://img.shields.io/node/v/@04l3x4ndr3/microbase-orm)](https://www.npmjs.com/package/@04l3x4ndr3/microbase-orm)
 
 Um micro ORM em JavaScript puro ES6 inspirado no Query Builder do CodeIgniter 3, com suporte completo para MySQL/MariaDB e PostgreSQL.
 
