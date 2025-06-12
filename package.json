@@ -1,5 +1,5 @@
 {
-  "name": "microbase-orm",
+  "name": "@04l3x4ndr3/microbase-orm",
   "version": "1.0.1",
   "description": "Um micro ORM em JavaScript ES6 inspirado no CodeIgniter 3 Query Builder com suporte para MySQL/MariaDB e PostgreSQL",
   "main": "src/index.js",
@@ -31,6 +31,10 @@
     "url": "https://github.com/04l3x4ndr3"
   },
   "license": "MIT",
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com",
+    "access": "public"
+  },
   "repository": {
     "type": "git",
     "url": "https://github.com/04l3x4ndr3/microbase-orm.git"
@@ -60,9 +64,12 @@
   },
   "files": [
     "src/",
-    "examples/",
-    "README.md",
+    "tests/",
+    ".gitignore",
+    ".npmignore",
+    "CHANGELOG.md",
     "LICENSE",
-    "CHANGELOG.md"
+    "package.json",
+    "README.md"
   ]
 }
