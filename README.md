@@ -22,9 +22,13 @@ Um micro ORM em JavaScript puro ES6 inspirado no Query Builder do CodeIgniter 3,
   npm install 04l3x4ndr3/microbase-orm
 ```
 
-# Instalar dependências para MySQL/MariaDB
+# Instalar dependências para MySQL
 ```shell
   npm install mysql2
+```
+# Instalar dependências para MariaDB
+```shell
+  npm install mariadb
 ```
 
 # Instalar dependências para PostgreSQL
@@ -34,7 +38,7 @@ Um micro ORM em JavaScript puro ES6 inspirado no Query Builder do CodeIgniter 3,
 
 # Ou instalar ambos
 ```shell
-  npm install mysql2 pg
+  npm install mysql2 pg mariadb
 ```
 
 ## 🚀 Uso Rápido
@@ -42,7 +46,7 @@ Um micro ORM em JavaScript puro ES6 inspirado no Query Builder do CodeIgniter 3,
  import Database from './Database.js';
 // Configuração 
 const db = new Database({ 
-    driver: 'mysql', // ou 'postgres' 
+    driver: 'mysql', // ou 'postgres' ou 'mariadb' 
     host: 'localhost',
     username: 'usuario',
     password: 'senha',
