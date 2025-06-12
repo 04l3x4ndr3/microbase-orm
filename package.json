@@ -63,13 +63,6 @@
     "pg": "^8.11.3"
   },
   "files": [
-    "src/",
-    "tests/",
-    ".gitignore",
-    ".npmignore",
-    "CHANGELOG.md",
-    "LICENSE",
-    "package.json",
-    "README.md"
+    "*"
   ]
 }
