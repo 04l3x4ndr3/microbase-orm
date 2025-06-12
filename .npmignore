@@ -1,36 +1,26 @@
-# Arquivos de desenvolvimento
+# Source files
+src/
 tests/
-.github/
-.vscode/
-.idea/
 
-# Arquivos de configuração
-.gitignore
-.eslintrc*
-.prettierrc*
+# Config files
 tsconfig.json
+jest.config.js
+.eslintrc.js
+.prettierrc
 
-# Arquivos de documentação de desenvolvimento
-CONTRIBUTING.md
-docs/
-
-# Arquivos de build/CI
-.travis.yml
-.circleci/
+# CI/CD
 .github/
+.travis.yml
 
-# Logs
-*.log
+# Development
+*.test.js
+*.spec.js
+coverage/
 
-# Arquivos temporários
-*.tmp
-*.temp
+# Documentation
+docs/
+examples/
 
-# Editor files
-*.swp
-*.swo
-*~
-
-# OS files
-.DS_Store
-Thumbs.db
+# Git
+.git/
+.gitignore
