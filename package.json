@@ -6,7 +6,7 @@
   "type": "module",
   "scripts": {
     "test": "node tests/basic.test.js",
-    "build": "tsc",
+    "build": "echo build não é necessário",
     "lint": "echo 'Linting não configurado ainda'",
     "prepublishOnly": "npm run test && npm run build",
     "release:patch": "npm version patch && git push origin main --tags",
