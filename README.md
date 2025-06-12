@@ -16,16 +16,24 @@ Um micro ORM em JavaScript puro ES6 inspirado no Query Builder do CodeIgniter 3,
 - ✅ **Inspirado no CodeIgniter**: Métodos familiares para desenvolvedores PHP
 
 ## 📦 Instalação
-bash
+```shell
+  npm install 04l3x4ndr3/microbase-orm
+```
 
 # Instalar dependências para MySQL/MariaDB
-npm install mysql2
+```shell
+  npm install mysql2
+```
 
 # Instalar dependências para PostgreSQL
-npm install pg
+```shell
+  npm install pg
+```
 
 # Ou instalar ambos
-npm install mysql2 pg
+```shell
+  npm install mysql2 pg
+```
 
 ## 🚀 Uso Rápido
 ```javascript
