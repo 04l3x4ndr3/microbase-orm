@@ -9,7 +9,7 @@ class Connection {
     }
 
     async connect() {
-        switch (this.config.driver) {
+        switch (this.config.driver.toLowerCase()) {
             case 'mysql':
             case 'mariadb':
                 // Configuração MySQL
@@ -46,6 +46,17 @@ class Connection {
                     reconnect: this.config.reconnect !== false, // true por padrão
                     maxReconnects: this.config.maxReconnects || 3,
                     reconnectDelay: this.config.reconnectDelay || 2000,
+
+                    // Tratamento de tipos booleanos apenas para a LIB MySQL (mysql2)
+                    ...(this.config.driver.toLowerCase() === 'mysql' && {
+                        typeCast: function (field, next) {
+                            if (field.type === 'TINY' && field.length === 1) {
+                                const val = field.string(); // pode retornar '1', '0' ou null
+                                return val === null ? null : val === '1';
+                            }
+                            return next();
+                        }
+                    })
                 };
 
                 if (this.config.max) {
@@ -101,7 +112,6 @@ class Connection {
                     });
                 }
                 break;
-
             case 'postgres':
                 // Configuração PostgreSQL
                 const pgConfig = {

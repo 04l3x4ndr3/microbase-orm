@@ -3,15 +3,19 @@
   "version": "1.0.8",
   "description": "Um micro ORM em JavaScript ES6 inspirado no CodeIgniter 3 Query Builder com suporte para MySQL/MariaDB e PostgreSQL",
   "main": "src/index.js",
+  "files": [
+    "src",
+    "README.md",
+    "LICENSE"
+  ],
   "type": "module",
   "scripts": {
     "test": "node tests/basic.test.js",
-    "build": "echo build não é necessário",
-    "lint": "echo 'Linting não configurado ainda'",
-    "prepublishOnly": "npm run test && npm run build",
-    "release:patch": "npm version patch && git push origin main --tags",
-    "release:minor": "npm version minor && git push origin main --tags",
-    "release:major": "npm version major && git push origin main --tags"
+    "release": "semantic-release"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/04l3x4ndr3/microbase-orm.git"
   },
   "keywords": [
     "orm",
@@ -27,28 +31,24 @@
     "nodejs"
   ],
   "author": {
-    "name": "04l3x4ndr3",
+    "name": "Alexandre (04l3x4ndr3)",
     "url": "https://github.com/04l3x4ndr3"
   },
   "license": "MIT",
   "publishConfig": {
-    "registry": "https://npm.pkg.github.com",
     "access": "public"
   },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/04l3x4ndr3/microbase-orm.git"
-  },
+  "homepage": "https://github.com/04l3x4ndr3/microbase-orm#readme",
   "bugs": {
     "url": "https://github.com/04l3x4ndr3/microbase-orm/issues"
   },
-  "homepage": "https://github.com/04l3x4ndr3/microbase-orm#readme",
   "engines": {
-    "node": ">=14.0.0"
+    "node": ">=16.0.0"
   },
   "peerDependencies": {
-    "mysql2": "^3.0.0",
-    "pg": "^8.0.0"
+    "mysql2": "^3.6.5",
+    "mariadb": "^3.4.2",
+    "pg": "^8.11.3"
   },
   "peerDependenciesMeta": {
     "mysql2": {
@@ -56,13 +56,25 @@
     },
     "pg": {
       "optional": true
+    },
+    "mariadb": {
+      "optional": true
     }
   },
   "devDependencies": {
     "mysql2": "^3.6.5",
-    "pg": "^8.11.3"
+    "mariadb": "^3.4.2",
+    "pg": "^8.11.3",
+    "@semantic-release/changelog": "^6.0.3",
+    "@semantic-release/git": "^10.0.1",
+    "@semantic-release/npm": "^11.0.0",
+    "semantic-release": "^23.0.0",
+    "cz-conventional-changelog": "^3.3.0",
+    "commitizen": "^4.3.0"
   },
-  "files": [
-    "*"
-  ]
+  "config": {
+    "commitizen": {
+      "path": "./node_modules/cz-conventional-changelog"
+    }
+  }
 }
