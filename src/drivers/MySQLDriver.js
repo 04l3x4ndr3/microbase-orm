@@ -3,6 +3,7 @@ class MySQLDriver {
         this.connection = connection;
         this.config = config;
         this.isPool = !!config.max;
+        this.DEBUG = config.debug || false;
     }
 
     escapeIdentifier(identifier) {
@@ -24,26 +25,15 @@ class MySQLDriver {
 
     async execute(sql, params = []) {
         try {
-            console.log('🔍 MySQL SQL Debug:', sql);
-            console.log('📝 MySQL Params:', params);
-            console.log('🏊‍♂️ Using Pool:', this.isPool);
-
-            let result;
-
-            if (this.isPool) {
-                // Usando pool - mysql2 automaticamente gerencia as conexões
-                result = await this.connection.execute(sql, params);
-            } else {
-                // Usando conexão única
-                result = await this.connection.execute(sql, params);
+            if (this.DEBUG) {
+                console.log('🔍 MySQL SQL Debug:', sql);
+                console.log('📝 MySQL Params:', params);
+                console.log('🏊‍♂️ Using Pool:', this.isPool);
             }
-
-            // result[0] = dados, result[1] = metadata
-            return result[0];
-
+            const [rows] = await this.connection.execute(sql, params);
+            return rows;
         } catch (error) {
-            const mysqlError = this.handleMySQLError(error, sql);
-            throw mysqlError;
+            throw this.handleMySQLError(error, sql);
         }
     }
 
@@ -126,11 +116,10 @@ class MySQLDriver {
     async tableExists(tableName) {
         try {
             const result = await this.execute(`
-                SELECT COUNT(*) as count 
-                FROM information_schema.tables 
-                WHERE table_schema = DATABASE() 
-                AND table_name = ?
-            `, [tableName]);
+                SELECT COUNT(*) as count
+                FROM information_schema.tables
+                WHERE table_schema = DATABASE()
+                  AND table_name = ?`, [tableName]);
 
             return result[0].count > 0;
         } catch (error) {
@@ -141,12 +130,11 @@ class MySQLDriver {
     // Método para listar todas as tabelas
     async listTables() {
         try {
-            const result = await this.execute(`
-                SELECT table_name 
-                FROM information_schema.tables 
-                WHERE table_schema = DATABASE()
-                ORDER BY table_name
-            `);
+            const result = await this.execute(
+                `SELECT table_name
+                 FROM information_schema.tables
+                 WHERE table_schema = DATABASE()
+                 ORDER BY table_name`);
 
             return result.map(row => row.table_name);
         } catch (error) {
@@ -157,8 +145,7 @@ class MySQLDriver {
     // Método para descrever uma tabela
     async describeTable(tableName) {
         try {
-            const result = await this.execute(`DESCRIBE ??`, [tableName]);
-            return result;
+            return  await this.execute(`DESCRIBE ??`, [tableName]);
         } catch (error) {
             throw new Error(`Erro ao descrever tabela ${tableName}: ${error.message}`);
         }

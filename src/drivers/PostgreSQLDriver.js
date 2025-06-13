@@ -120,14 +120,13 @@ class PostgreSQLDriver {
     // Método para verificar se uma tabela existe no schema específico
     async tableExists(tableName) {
         try {
-            const result = await this.execute(`
-                SELECT EXISTS (SELECT
-                               FROM information_schema.tables
-                               WHERE table_schema = $1
-                                 AND table_name = $2);
-            `, [this.schema, tableName]);
+            const result = await this.execute(
+                `SELECT EXISTS (SELECT *
+                                FROM information_schema.tables
+                                WHERE table_schema = $1
+                                  AND table_name = $2);`, [this.schema, tableName]);
 
-            return result[0].exists;
+            return result[0]?.exists;
         } catch (error) {
             return false;
         }

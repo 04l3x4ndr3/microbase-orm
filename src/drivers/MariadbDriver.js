@@ -3,6 +3,7 @@ class MariaDBDriver {
         this.connection = connection;
         this.config = config;
         this.isPool = !!config.max;
+        this.DEBUG = config.debug || false;
     }
 
     escapeIdentifier(identifier) {
@@ -24,22 +25,15 @@ class MariaDBDriver {
 
     async execute(sql, params = []) {
         try {
-            console.log('🔍 MariaDB SQL Debug:', sql);
-            console.log('📝 MariaDB Params:', params);
-            console.log('🏊‍♂️ Using Pool:', this.isPool);
-
-            let result;
-
-            if (this.isPool) {
-                result = await this.connection.execute(sql, params);
-            } else {
-                result = await this.connection.execute(sql, params);
+            if (this.DEBUG) {
+                console.log('🔍 MariaDB SQL Debug:', sql);
+                console.log('📝 MariaDB Params:', params);
+                console.log('🏊‍♂️ Using Pool:', this.isPool);
             }
-
-            return result[0];
+            const [rows] = await this.connection.execute(sql, params);
+            return rows;
         } catch (error) {
-            const mariaDbError = this.handleMariaDBError(error, sql);
-            throw mariaDbError;
+            throw this.handleMariaDBError(error, sql);
         }
     }
 
@@ -86,10 +80,10 @@ class MariaDBDriver {
     async tableExists(tableName) {
         try {
             const result = await this.execute(`
-                SELECT COUNT(*) as count 
-                FROM information_schema.tables 
-                WHERE table_schema = DATABASE() 
-                AND table_name = ?
+                SELECT COUNT(*) as count
+                FROM information_schema.tables
+                WHERE table_schema = DATABASE()
+                  AND table_name = ?
             `, [tableName]);
 
             return result[0].count > 0;
@@ -101,8 +95,8 @@ class MariaDBDriver {
     async listTables() {
         try {
             const result = await this.execute(`
-                SELECT table_name 
-                FROM information_schema.tables 
+                SELECT table_name
+                FROM information_schema.tables
                 WHERE table_schema = DATABASE()
                 ORDER BY table_name
             `);
@@ -115,8 +109,7 @@ class MariaDBDriver {
 
     async describeTable(tableName) {
         try {
-            const result = await this.execute(`DESCRIBE ??`, [tableName]);
-            return result;
+            return await this.execute(`DESCRIBE ??`, [tableName]);
         } catch (error) {
             throw new Error(`Erro ao descrever tabela ${tableName}: ${error.message}`);
         }
