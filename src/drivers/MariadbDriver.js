@@ -4,6 +4,10 @@ class MariaDBDriver {
         this.config = config;
         this.isPool = !!config.max;
         this.DEBUG = config.debug || false;
+        // ✅ Adicionar proteção contra recursão
+        this.errorDepth = 0;
+        this.maxErrorDepth = 10;
+
     }
 
     escapeIdentifier(identifier) {
@@ -24,6 +28,11 @@ class MariaDBDriver {
     }
 
     async execute(sql, params = []) {
+        // ✅ Proteção contra stack overflow
+        if (this.errorDepth > this.maxErrorDepth) {
+            throw new Error('Stack overflow detectado - muitos erros aninhados');
+        }
+
         try {
             if (this.DEBUG) {
                 console.log('🔍 MariaDB SQL Debug:', sql);
@@ -37,9 +46,9 @@ class MariaDBDriver {
     }
 
     handleMariaDBError(error, sql) {
-        const errorCode = error.code;
-        const errno = error.errno;
-        const errorMessage = error.message;
+        const errorCode = error.code || 'UNKNOWN';
+        const errno = error.errno || 0;
+        const errorMessage = String(error.message || error.toString() || 'Erro desconhecido');
 
         switch (errorCode) {
             case 'ER_NO_SUCH_TABLE':
@@ -166,12 +175,22 @@ class MariaDBDriver {
     async backupTable(tableName) {
         try {
             const backupTableName = `${tableName}_backup_${Date.now()}`;
-            await this.execute(`CREATE TABLE ?? AS SELECT * FROM ??`, [backupTableName, tableName]);
+
+            // ✅ Usar escape manual em vez de placeholder para DDL
+            const escapedBackupName = this.escapeIdentifier(backupTableName);
+            const escapedTableName = this.escapeIdentifier(tableName);
+
+            await this.execute(`CREATE TABLE ${escapedBackupName} AS
+            SELECT *
+            FROM ${escapedTableName}`);
             return backupTableName;
         } catch (error) {
-            throw new Error(`Erro ao criar backup da tabela ${tableName}: ${error.message}`);
+            // ✅ Evitar recursão - não referenciar error.message diretamente
+            const errorMsg = error instanceof Error ? error.message : String(error);
+            throw new Error(`Erro ao criar backup da tabela ${tableName}: ${errorMsg}`);
         }
     }
+
 
     async optimizeTable(tableName) {
         try {
