@@ -63,7 +63,7 @@
   "devDependencies": {
     "mysql2": "^3.6.5",
     "mariadb": "^3.4.2",
-    "pg": "^8.11.3",
+    "pg": "^8.11.3"
   },
   "config": {
     "commitizen": {
