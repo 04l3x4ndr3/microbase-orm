@@ -30,8 +30,7 @@ class MySQLDriver {
                 console.log('📝 MySQL Params:', params);
                 console.log('🏊‍♂️ Using Pool:', this.isPool);
             }
-            const [rows] = await this.connection.execute(sql, params);
-            return rows;
+            return await this.connection.execute(sql, params);
         } catch (error) {
             throw this.handleMySQLError(error, sql);
         }

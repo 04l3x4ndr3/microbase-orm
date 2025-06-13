@@ -30,8 +30,7 @@ class MariaDBDriver {
                 console.log('📝 MariaDB Params:', params);
                 console.log('🏊‍♂️ Using Pool:', this.isPool);
             }
-            const [rows] = await this.connection.execute(sql, params);
-            return rows;
+            return await this.connection.execute(sql, params);
         } catch (error) {
             throw this.handleMariaDBError(error, sql);
         }
