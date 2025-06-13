@@ -1,4 +1,5 @@
 import mysql from 'mysql2/promise';
+import mariadb from 'mariadb';
 import pg from 'pg';
 
 class Connection {
@@ -9,9 +10,15 @@ class Connection {
     }
 
     async connect() {
+        console.log(`🏁 Driver: ${this.config.driver.toUpperCase()} - Conectando ao banco de dados ${this.config.database}...`);
+
         switch (this.config.driver.toLowerCase()) {
             case 'mysql':
             case 'mariadb':
+
+                const selectedDriver = this.config.driver.toLowerCase() === 'mysql' ? mysql : mariadb;
+                const driverName = this.config.driver.toLowerCase() === 'mysql' ? 'MySQL' : 'MariaDB';
+
                 // Configuração MySQL
                 const mysqlConfig = {
                     host: this.config.host,
@@ -24,15 +31,9 @@ class Connection {
                     ...(this.config.ssl && {ssl: this.config.ssl}),
 
                     // Configurações de timeout
-                    ...(this.config.connectionTimeoutMillis && {
-                        connectTimeout: this.config.connectionTimeoutMillis
-                    }),
-                    ...(this.config.acquireTimeout && {
-                        acquireTimeout: this.config.acquireTimeout
-                    }),
-                    ...(this.config.timeout && {
-                        timeout: this.config.timeout
-                    }),
+                    ...(this.config.connectionTimeoutMillis && {connectTimeout: this.config.connectionTimeoutMillis}),
+                    ...(this.config.acquireTimeout && {acquireTimeout: this.config.acquireTimeout}),
+                    ...(this.config.timeout && {timeout: this.config.timeout}),
 
                     // Configurações adicionais do MySQL
                     charset: this.config.charset || 'utf8mb4',
@@ -61,7 +62,7 @@ class Connection {
 
                 if (this.config.max) {
                     // Usar pool de conexões
-                    this.pool = mysql.createPool({
+                    this.pool = selectedDriver.createPool({
                         ...mysqlConfig,
 
                         // Configurações específicas do pool
@@ -86,7 +87,7 @@ class Connection {
 
                     // Event listeners para o pool
                     this.pool.on('connection', (connection) => {
-                        console.log('🔗 Nova conexão MySQL estabelecida:', connection.threadId);
+                        console.log(`🔗 Nova conexão ${driverName} estabelecida:`, connection.threadId);
                     });
 
                     this.pool.on('error', (err) => {
@@ -100,11 +101,11 @@ class Connection {
                     this.connection = this.pool;
                 } else {
                     // Conexão única
-                    this.connection = await mysql.createConnection(mysqlConfig);
+                    this.connection = await selectedDriver.createConnection(mysqlConfig);
 
                     // Event listeners para conexão única
                     this.connection.on('error', (err) => {
-                        console.error('❌ Erro na conexão MySQL:', err);
+                        console.error(`❌ Erro na conexão ${driverName}:`, err);
                         if (err.code === 'PROTOCOL_CONNECTION_LOST') {
                             console.log('🔄 Tentando reconectar...');
                             this.handleDisconnect();
