@@ -14,107 +14,114 @@ class Connection {
 
         switch (this.config.driver.toLowerCase()) {
             case 'mysql':
-            case 'mariadb':
-
-                const selectedDriver = this.config.driver.toLowerCase() === 'mysql' ? mysql : mariadb;
-                const driverName = this.config.driver.toLowerCase() === 'mysql' ? 'MySQL' : 'MariaDB';
-
-                // Configuração MySQL
                 const mysqlConfig = {
                     host: this.config.host,
                     user: this.config.username,
                     password: this.config.password,
                     database: this.config.database,
                     port: this.config.port || 3306,
-
-                    // Configurações de SSL
-                    ...(this.config.ssl && {ssl: this.config.ssl}),
-
-                    // Configurações de timeout
-                    ...(this.config.connectionTimeoutMillis && {connectTimeout: this.config.connectionTimeoutMillis}),
-                    ...(this.config.acquireTimeout && {acquireTimeout: this.config.acquireTimeout}),
-                    ...(this.config.timeout && {timeout: this.config.timeout}),
-
-                    // Configurações adicionais do MySQL
                     charset: this.config.charset || 'utf8mb4',
                     timezone: this.config.timezone || 'local',
                     dateStrings: this.config.dateStrings || false,
                     debug: this.config.debug || false,
                     trace: this.config.trace || true,
                     multipleStatements: this.config.multipleStatements || false,
-
-                    // Configurações de reconexão
-                    reconnect: this.config.reconnect !== false, // true por padrão
+                    reconnect: this.config.reconnect !== false,
                     maxReconnects: this.config.maxReconnects || 3,
                     reconnectDelay: this.config.reconnectDelay || 2000,
-
-                    // Tratamento de tipos booleanos apenas para a LIB MySQL (mysql2)
-                    ...(this.config.driver.toLowerCase() === 'mysql' && {
-                        typeCast: function (field, next) {
-                            if (field.type === 'TINY' && field.length === 1) {
-                                const val = field.string(); // pode retornar '1', '0' ou null
-                                return val === null ? null : val === '1';
-                            }
-                            return next();
+                    ...(this.config.ssl && {ssl: this.config.ssl}),
+                    ...(this.config.connectionTimeoutMillis && {connectTimeout: this.config.connectionTimeoutMillis}),
+                    ...(this.config.acquireTimeout && {acquireTimeout: this.config.acquireTimeout}),
+                    typeCast: function (field, next) {
+                        if (field.type === 'TINY' && field.length === 1) {
+                            const val = field.string();
+                            return val === null ? null : val === '1';
                         }
-                    })
+                        return next();
+                    }
                 };
 
                 if (this.config.max) {
-                    // Usar pool de conexões
-                    this.pool = selectedDriver.createPool({
+                    const pool = mysql.createPool({
                         ...mysqlConfig,
-
-                        // Configurações específicas do pool
                         connectionLimit: this.config.max || 10,
                         queueLimit: this.config.queueLimit || 0,
-
-                        // Timeouts específicos do pool
                         acquireTimeout: this.config.acquireTimeout || 60000,
-                        timeout: this.config.timeout || 60000,
-
-                        // Configurações de idle
-                        idleTimeout: this.config.idleTimeoutMillis || 30000,
-                        maxIdle: this.config.maxIdle || this.config.max,
-
-                        // Configurações de retry
-                        retryDelay: this.config.retryDelay || 200,
-
-                        // Pool events
-                        removeNodeErrorCount: this.config.removeNodeErrorCount || 5,
-                        restoreNodeTimeout: this.config.restoreNodeTimeout || 0,
+                        timeout: this.config.timeout || 60000
                     });
 
-                    // Event listeners para o pool
-                    this.pool.on('connection', (connection) => {
-                        console.log(`🔗 Nova conexão ${driverName} estabelecida:`, connection.threadId);
+                    pool.on('connection', (connection) => {
+                        console.log(`🔗 Nova conexão MySQL estabelecida:`, connection.threadId);
                     });
 
-                    this.pool.on('error', (err) => {
+                    pool.on('error', (err) => {
                         console.error('❌ Erro no pool MySQL:', err);
                     });
 
-                    this.pool.on('enqueue', () => {
+                    pool.on('enqueue', () => {
                         console.log('⏳ Requisição enfileirada no pool MySQL');
                     });
 
-                    this.connection = this.pool;
+                    this.pool = pool;
+                    this.connection = pool;
                 } else {
-                    // Conexão única
-                    this.connection = await selectedDriver.createConnection(mysqlConfig);
-
-                    // Event listeners para conexão única
-                    this.connection.on('error', (err) => {
-                        console.error(`❌ Erro na conexão ${driverName}:`, err);
+                    const connection = await mysql.createConnection(mysqlConfig);
+                    connection.on('error', (err) => {
+                        console.error(`❌ Erro na conexão MySQL:`, err);
                         if (err.code === 'PROTOCOL_CONNECTION_LOST') {
                             console.log('🔄 Tentando reconectar...');
                             this.handleDisconnect();
                         }
                     });
+                    this.connection = connection;
                 }
                 break;
+
+            case 'mariadb':
+                const mariadbConfig = {
+                    host: this.config.host,
+                    user: this.config.username,
+                    password: this.config.password,
+                    database: this.config.database,
+                    port: this.config.port || 3306,
+                    multipleStatements: this.config.multipleStatements || false,
+                    allowUserPasswords: true,
+                    ...(this.config.ssl && {ssl: this.config.ssl}),
+                    ...(this.config.connectionTimeoutMillis && {connectTimeout: this.config.connectionTimeoutMillis}),
+                    socketPath: this.config.socketPath || null
+                };
+
+                if (this.config.max) {
+                    const pool = mariadb.createPool({
+                        ...mariadbConfig,
+                        connectionLimit: this.config.max || 10,
+                        acquireTimeout: this.config.acquireTimeout || 60000,
+                        idleTimeoutMillis: this.config.idleTimeoutMillis || 30000,
+                        removeNodeErrorCount: this.config.removeNodeErrorCount || 5,
+                        restoreNodeTimeout: this.config.restoreNodeTimeout || 0,
+                    });
+
+                    pool.on('connection', (connection) => {
+                        console.log(`🔗 Nova conexão MariaDB estabelecida.`);
+                    });
+
+                    pool.on('error', (err) => {
+                        console.error('❌ Erro no pool MariaDB:', err);
+                    });
+
+                    this.pool = pool;
+                    this.connection = pool;
+                } else {
+                    const connection = await mariadb.createConnection(mariadbConfig);
+                    connection.on('error', (err) => {
+                        console.error(`❌ Erro na conexão MariaDB:`, err);
+                    });
+                    this.connection = connection;
+                }
+                break;
+
             case 'postgres':
-                // Configuração PostgreSQL
+                // Configurações do PostgreSQL (sem alterações).
                 const pgConfig = {
                     host: this.config.host,
                     user: this.config.username,
@@ -151,19 +158,6 @@ class Connection {
         }
 
         return this.connection;
-    }
-
-    // Método para reconexão automática do MySQL
-    async handleDisconnect() {
-        if (['mysql', 'mariadb'].includes(this.config.driver) && !this.pool) {
-            try {
-                await this.connect();
-                console.log('✅ Reconectado ao MySQL com sucesso');
-            } catch (error) {
-                console.error('❌ Falha na reconexão MySQL:', error);
-                setTimeout(() => this.handleDisconnect(), 2000);
-            }
-        }
     }
 
     async disconnect() {
