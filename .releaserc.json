@@ -33,7 +33,14 @@
     ],
     "@semantic-release/release-notes-generator",
     "@semantic-release/changelog",
-    "@semantic-release/npm",
+    [
+      "@semantic-release/npm",
+      {
+        "npmPublish": true,
+        "pkgRoot": ".",
+        "registry": "https://registry.npmjs.org/"
+      }
+    ],
     [
       "@semantic-release/git",
       {
