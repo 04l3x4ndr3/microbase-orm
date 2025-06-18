@@ -192,6 +192,13 @@ class Database {
         return null;
     }
 
+    getCompiledSelect() {
+        if (this.queryBuilder) {
+            return this.queryBuilder.getCompiledSelect();
+        }
+        return null;
+    }
+
     // Método para testar conexão
     async testConnection() {
         try {

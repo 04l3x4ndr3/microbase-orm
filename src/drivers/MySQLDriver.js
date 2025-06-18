@@ -10,6 +10,8 @@ class MySQLDriver {
     }
 
     escapeIdentifier(identifier) {
+        const [table, field] = identifier.split('.');
+        if (table && field) return `\`${table.replace(/`/g, '``')}\`.\`${field.replace(/`/g, '``')}\``;
         return `\`${identifier.replace(/`/g, '``')}\``;
     }
 
