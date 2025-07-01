@@ -392,18 +392,16 @@ const vendedores = await db.builder()
 ## 🗂️ Estrutura de Pastas
 
 ```
-src/
-├── index.js                 # Arquivo principal
+projeto/
 ├── Database.js              # Classe principal
 ├── QueryBuilder.js          # Construtor de queries
 ├── database/
 │   └── Connection.js        # Gerenciador de conexões
 ├── drivers/
 │   ├── MySQLDriver.js       # Driver MySQL/MariaDB
-│   └── MariadbSQLDriver.js  # Driver MariaDB
 │   └── PostgreSQLDriver.js  # Driver PostgreSQL
-└── tests/
-    └── basic.test.js        # Teste básico
+└── examples/
+    └── usage.js             # Exemplos de uso
 ```
 
 ## 🔒 Segurança
