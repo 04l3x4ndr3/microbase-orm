@@ -4,35 +4,53 @@ class MariaDBDriver {
         this.config = config;
         this.isPool = !!config.max;
         this.DEBUG = config.debug || false;
-        // ✅ Adicionar proteção contra recursão
         this.errorDepth = 0;
         this.maxErrorDepth = 10;
-
     }
 
     escapeIdentifier(identifier) {
+        if (!identifier) throw new Error('Identifier não pode ser vazio');
         return `\`${identifier.replace(/`/g, '``')}\``;
     }
 
     escapeValue(value) {
-        if (value === null) return 'NULL';
-        if (typeof value === 'string') {
-            return `'${value.replace(/'/g, "\\'")}'`;
-        }
+        if (value === null || value === undefined) return 'NULL';
+        if (typeof value === 'string') return `'${value.replace(/'/g, "\\'")}'`;
         if (typeof value === 'number') return value.toString();
         if (typeof value === 'boolean') return value ? '1' : '0';
-        if (value instanceof Date) {
-            return `'${value.toISOString().slice(0, 19).replace('T', ' ')}'`;
-        }
+        if (value instanceof Date) return `'${value.toISOString().slice(0, 19).replace('T', ' ')}'`;
         return `'${String(value).replace(/'/g, "\\'")}'`;
     }
 
-    async execute(sql, params = []) {
-        // ✅ Proteção contra stack overflow
-        if (this.errorDepth > this.maxErrorDepth) {
-            throw new Error('Stack overflow detectado - muitos erros aninhados');
+    async beginTransaction() {
+        try {
+            await this.execute('START TRANSACTION');
+            if (this.DEBUG) console.log('🔄 Transação iniciada');
+        } catch (error) {
+            throw new Error(`Não foi possível iniciar a transação: ${error.message}`);
         }
+    }
 
+    async commitTransaction() {
+        try {
+            await this.execute('COMMIT');
+            if (this.DEBUG) console.log('✅ Transação confirmada');
+        } catch (error) {
+            throw new Error(`Não foi possível confirmar a transação: ${error.message}`);
+        }
+    }
+
+    async rollbackTransaction() {
+        try {
+            await this.execute('ROLLBACK');
+            if (this.DEBUG) console.log('⛔ Transação revertida');
+        } catch (error) {
+            throw new Error(`Não foi possível reverter a transação: ${error.message}`);
+        }
+    }
+
+    async execute(sql, params = []) {
+        if (this.errorDepth > this.maxErrorDepth) throw new Error('Stack overflow detectado - muitos erros aninhados');
         try {
             if (this.DEBUG) {
                 console.log('🔍 MariaDB SQL Debug:', sql);
@@ -41,11 +59,68 @@ class MariaDBDriver {
             }
             return await this.connection.execute(sql, params);
         } catch (error) {
-            throw this.handleMariaDBError(error, sql);
+            throw this._handleDBError(error, sql);
         }
     }
 
-    handleMariaDBError(error, sql) {
+    getLimitSyntax(limit, offset = 0) {
+        const limitNum = parseInt(limit);
+        const offsetNum = parseInt(offset);
+        if (isNaN(limitNum) || limitNum < 0) throw new Error('LIMIT deve ser um número não negativo');
+        if (isNaN(offsetNum) || offsetNum < 0) throw new Error('OFFSET deve ser um número não negativo');
+        if (offset > 0) return `LIMIT ${offset}, ${limit}`;
+        return `LIMIT ${limit}`;
+    }
+
+    getRandomFunction() {
+        return 'RAND()';
+    }
+
+    async tableExists(tableName) {
+        try {
+            const result = await this.execute(`SELECT 1
+                                               FROM information_schema.tables
+                                               WHERE table_schema = DATABASE()
+                                                 AND table_name = ?`, [tableName]);
+            return result.count > 0;
+        } catch (error) {
+            return false;
+        }
+    }
+
+    async listTables() {
+        try {
+            const result = await this.execute(`SELECT table_name
+                                               FROM information_schema.tables
+                                               WHERE table_schema = DATABASE()
+                                               ORDER BY table_name`);
+            return result.map(row => row.table_name);
+        } catch (error) {
+            throw new Error(`Erro ao listar tabelas: ${error.message}`);
+        }
+    }
+
+    async describeTable(tableName) {
+        try {
+            return await this.execute(`DESCRIBE ??`, [tableName]);
+        } catch (error) {
+            throw new Error(`Erro ao descrever tabela ${tableName}: ${error.message}`);
+        }
+    }
+
+    async getDatabaseInfo() {
+        try {
+            const [version, charset, collation] = await this.execute(`SELECT
+            (SELECT VERSION()) as version,
+            (SELECT @@character_set_database) as charset,
+            (SELECT @@collation_database) as collation;`);
+            return {version, charset, collation};
+        } catch (error) {
+            throw new Error(`Erro ao obter informações do banco: ${error.message}`);
+        }
+    }
+
+    _handleDBError(error, sql) {
         const errorCode = error.code || 'UNKNOWN';
         const errno = error.errno || 0;
         const errorMessage = String(error.message || error.toString() || 'Erro desconhecido');
@@ -71,142 +146,6 @@ class MariaDBDriver {
                 return new Error(`Conexão recusada: Verifique se o MariaDB está rodando: ${errorMessage}`);
             default:
                 return new Error(`MariaDB Error (${errorCode}/${errno}): ${errorMessage}\nSQL: ${sql}`);
-        }
-    }
-
-    getLimitSyntax(limit, offset = 0) {
-        if (offset > 0) {
-            return `LIMIT ${offset}, ${limit}`;
-        }
-        return `LIMIT ${limit}`;
-    }
-
-    getRandomFunction() {
-        return 'RAND()';
-    }
-
-    async tableExists(tableName) {
-        try {
-            const result = await this.execute(`
-                SELECT COUNT(*) as count
-                FROM information_schema.tables
-                WHERE table_schema = DATABASE()
-                  AND table_name = ?
-            `, [tableName]);
-
-            return result[0].count > 0;
-        } catch (error) {
-            return false;
-        }
-    }
-
-    async listTables() {
-        try {
-            const result = await this.execute(`
-                SELECT table_name
-                FROM information_schema.tables
-                WHERE table_schema = DATABASE()
-                ORDER BY table_name
-            `);
-
-            return result.map(row => row.table_name);
-        } catch (error) {
-            throw new Error(`Erro ao listar tabelas: ${error.message}`);
-        }
-    }
-
-    async describeTable(tableName) {
-        try {
-            return await this.execute(`DESCRIBE ??`, [tableName]);
-        } catch (error) {
-            throw new Error(`Erro ao descrever tabela ${tableName}: ${error.message}`);
-        }
-    }
-
-    async getDatabaseInfo() {
-        try {
-            const [version] = await this.execute('SELECT VERSION() as version');
-            const [charset] = await this.execute('SELECT @@character_set_database as charset');
-            const [collation] = await this.execute('SELECT @@collation_database as collation');
-
-            return {
-                version: version.version,
-                charset: charset.charset,
-                collation: collation.collation
-            };
-        } catch (error) {
-            throw new Error(`Erro ao obter informações do banco: ${error.message}`);
-        }
-    }
-
-    async getPerformanceStats() {
-        try {
-            const stats = await this.execute(`
-                SHOW STATUS WHERE Variable_name IN (
-                    'Connections',
-                    'Threads_connected',
-                    'Threads_running',
-                    'Questions',
-                    'Slow_queries',
-                    'Uptime'
-                )
-            `);
-
-            const result = {};
-            stats.forEach(stat => {
-                result[stat.Variable_name.toLowerCase()] = stat.Value;
-            });
-
-            return result;
-        } catch (error) {
-            throw new Error(`Erro ao obter estatísticas: ${error.message}`);
-        }
-    }
-
-    async ping() {
-        try {
-            await this.execute('SELECT 1 as ping');
-            return true;
-        } catch (error) {
-            return false;
-        }
-    }
-
-    async backupTable(tableName) {
-        try {
-            const backupTableName = `${tableName}_backup_${Date.now()}`;
-
-            // ✅ Usar escape manual em vez de placeholder para DDL
-            const escapedBackupName = this.escapeIdentifier(backupTableName);
-            const escapedTableName = this.escapeIdentifier(tableName);
-
-            await this.execute(`CREATE TABLE ${escapedBackupName} AS
-            SELECT *
-            FROM ${escapedTableName}`);
-            return backupTableName;
-        } catch (error) {
-            // ✅ Evitar recursão - não referenciar error.message diretamente
-            const errorMsg = error instanceof Error ? error.message : String(error);
-            throw new Error(`Erro ao criar backup da tabela ${tableName}: ${errorMsg}`);
-        }
-    }
-
-
-    async optimizeTable(tableName) {
-        try {
-            const result = await this.execute(`OPTIMIZE TABLE ??`, [tableName]);
-            return result[0];
-        } catch (error) {
-            throw new Error(`Erro ao otimizar tabela ${tableName}: ${error.message}`);
-        }
-    }
-
-    async analyzeTable(tableName) {
-        try {
-            const result = await this.execute(`ANALYZE TABLE ??`, [tableName]);
-            return result[0];
-        } catch (error) {
-            throw new Error(`Erro ao analisar tabela ${tableName}: ${error.message}`);
         }
     }
 }

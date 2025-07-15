@@ -192,18 +192,18 @@ class Connection {
             // ✅ Event handlers melhorados para pool
             pool.on('connection', (connection) => {
                 console.log(`🔗 Nova conexão MySQL no pool:`, connection.threadId);
-                this.emit('poolConnection', { threadId: connection.threadId });
+                this.emit('poolConnection', {threadId: connection.threadId});
             });
 
             pool.on('error', (err) => {
                 console.error('❌ Erro no pool MySQL:', err.message);
-                this.emit('poolError', { error: err.message });
+                this.emit('poolError', {error: err.message});
                 this._handleConnectionError(err);
             });
 
             pool.on('enqueue', () => {
                 console.log('⏳ Requisição enfileirada no pool MySQL');
-                this.emit('poolEnqueue', { timestamp: Date.now() });
+                this.emit('poolEnqueue', {timestamp: Date.now()});
             });
 
             // ✅ Testar pool antes de retornar
@@ -216,7 +216,7 @@ class Connection {
 
             connection.on('error', (err) => {
                 console.error(`❌ Erro na conexão MySQL:`, err.message);
-                this.emit('connectionError', { error: err.message });
+                this.emit('connectionError', {error: err.message});
 
                 if (err.code === 'PROTOCOL_CONNECTION_LOST') {
                     console.log('🔄 Tentando reconectar...');
@@ -266,12 +266,12 @@ class Connection {
             // ✅ Event handlers para MariaDB pool
             pool.on('connection', (connection) => {
                 console.log(`🔗 Nova conexão MariaDB no pool`);
-                this.emit('poolConnection', { connectionId: connection.threadId });
+                this.emit('poolConnection', {connectionId: connection.threadId});
             });
 
             pool.on('error', (err) => {
                 console.error('❌ Erro no pool MariaDB:', err.message);
-                this.emit('poolError', { error: err.message });
+                this.emit('poolError', {error: err.message});
             });
 
             // ✅ Testar pool
@@ -286,7 +286,7 @@ class Connection {
 
             connection.on('error', (err) => {
                 console.error(`❌ Erro na conexão MariaDB:`, err.message);
-                this.emit('connectionError', { error: err.message });
+                this.emit('connectionError', {error: err.message});
             });
 
             // ✅ Testar conexão
@@ -331,17 +331,17 @@ class Connection {
             // ✅ Event handlers para PostgreSQL pool
             this.pool.on('connect', (client) => {
                 console.log(`🔗 Nova conexão PostgreSQL no pool`);
-                this.emit('poolConnection', { processID: client.processID });
+                this.emit('poolConnection', {processID: client.processID});
             });
 
             this.pool.on('error', (err, client) => {
                 console.error('❌ Erro no pool PostgreSQL:', err.message);
-                this.emit('poolError', { error: err.message, processID: client?.processID });
+                this.emit('poolError', {error: err.message, processID: client?.processID});
             });
 
             this.pool.on('remove', (client) => {
                 console.log(`🗑️ Conexão PostgreSQL removida do pool`);
-                this.emit('poolRemove', { processID: client.processID });
+                this.emit('poolRemove', {processID: client.processID});
             });
 
             // ✅ Testar pool
@@ -356,12 +356,12 @@ class Connection {
 
             client.on('error', (err) => {
                 console.error(`❌ Erro na conexão PostgreSQL:`, err.message);
-                this.emit('connectionError', { error: err.message });
+                this.emit('connectionError', {error: err.message});
             });
 
             client.on('end', () => {
                 console.log('🔌 Conexão PostgreSQL finalizada');
-                this.emit('connectionEnd', { timestamp: Date.now() });
+                this.emit('connectionEnd', {timestamp: Date.now()});
             });
 
             // ✅ Testar conexão
@@ -555,7 +555,7 @@ class Connection {
             connectionId: this.connectionId,
             isConnected: this.isConnected,
             driver: this.config.driver,
-            metrics: { ...this.metrics },
+            metrics: {...this.metrics},
             lastHealthCheck: this.lastHealthCheck
         };
 

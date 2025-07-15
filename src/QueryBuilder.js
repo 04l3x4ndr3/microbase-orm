@@ -47,9 +47,7 @@ class QueryBuilder {
 
         this.reset();
 
-        if (this.DEBUG) {
-            console.log(`🔧 QueryBuilder inicializado [${this.queryBuilderId}] - Driver: ${driverType}`);
-        }
+        if (this.DEBUG) console.log(`🔧 QueryBuilder inicializado [${this.queryBuilderId}] - Driver: ${driverType}`);
     }
 
     generateBuilderId() {
@@ -63,12 +61,8 @@ class QueryBuilder {
             'postgres': PostgreSQLDriver,
             'postgresql': PostgreSQLDriver
         };
-
         const DriverClass = drivers[driverType.toLowerCase()];
-        if (!DriverClass) {
-            throw new Error(`Driver não suportado: ${driverType}. Drivers disponíveis: ${Object.keys(drivers).join(', ')}`);
-        }
-
+        if (!DriverClass) throw new Error(`Driver não suportado: ${driverType}. Drivers disponíveis: ${Object.keys(drivers).join(', ')}`);
         return new DriverClass(this.connection, config);
     }
 
@@ -186,6 +180,7 @@ class QueryBuilder {
         return this;
     }
 
+
     // ===============================
     // ✅ FROM MELHORADO
     // ===============================
@@ -291,6 +286,7 @@ class QueryBuilder {
 
         return this;
     }
+
 
     // ===============================
     // ✅ WHERE METHODS MELHORADOS
@@ -486,6 +482,7 @@ class QueryBuilder {
         return this;
     }
 
+
     // ===============================
     // ✅ GROUP BY E HAVING MELHORADOS
     // ===============================
@@ -579,6 +576,7 @@ class QueryBuilder {
         return this;
     }
 
+
     // ===============================
     // ✅ ORDER BY MELHORADO
     // ===============================
@@ -638,6 +636,7 @@ class QueryBuilder {
         return this;
     }
 
+
     // ===============================
     // ✅ LIMIT E OFFSET MELHORADOS
     // ===============================
@@ -666,6 +665,7 @@ class QueryBuilder {
         const offset = (page - 1) * perPage;
         return this.limit(perPage, offset);
     }
+
 
     // ===============================
     // ✅ COMMON TABLE EXPRESSIONS (CTE)
@@ -709,6 +709,7 @@ class QueryBuilder {
         return this;
     }
 
+
     // ===============================
     // ✅ UNION OPERATIONS
     // ===============================
@@ -731,6 +732,7 @@ class QueryBuilder {
     unionAll(query) {
         return this.union(query, true);
     }
+
 
     // ===============================
     // ✅ BUILD E EXECUTE METHODS
@@ -821,7 +823,7 @@ class QueryBuilder {
             const result = await this.driver.execute(sql, params);
 
             const executionTime = Date.now() - startTime;
-            this.lastQuery = { sql, params, executionTime, timestamp: Date.now() };
+            this.lastQuery = {sql, params, executionTime, timestamp: Date.now()};
             this.lastExecutionTime = executionTime;
 
             if (this.DEBUG) {
@@ -840,6 +842,7 @@ class QueryBuilder {
             throw error;
         }
     }
+
 
     // ===============================
     // ✅ MÉTODOS DE EXECUÇÃO MELHORADOS
@@ -934,6 +937,7 @@ class QueryBuilder {
         return processedRows;
     }
 
+
     // ===============================
     // ✅ INSERT METHODS MELHORADOS
     // ===============================
@@ -951,7 +955,8 @@ class QueryBuilder {
         const escapedFields = fields.map(field => this.driver.escapeIdentifier(field));
         const placeholders = fields.map(() => '?').join(', ');
 
-        let sql = `INSERT INTO ${this.driver.escapeIdentifier(table)} (${escapedFields.join(', ')}) VALUES (${placeholders})`;
+        let sql = `INSERT INTO ${this.driver.escapeIdentifier(table)} (${escapedFields.join(', ')})
+                   VALUES (${placeholders})`;
 
         // ✅ RETURNING para PostgreSQL
         if (this.driverType === 'postgres' || this.driverType === 'postgresql') {
@@ -985,7 +990,8 @@ class QueryBuilder {
             placeholders.push(`(${fields.map(() => '?').join(', ')})`);
         });
 
-        const sql = `INSERT INTO ${this.driver.escapeIdentifier(table)} (${escapedFields.join(', ')}) VALUES ${placeholders.join(', ')}`;
+        const sql = `INSERT INTO ${this.driver.escapeIdentifier(table)} (${escapedFields.join(', ')})
+                     VALUES ${placeholders.join(', ')}`;
 
         const result = await this.executeQuery(sql, values);
         this.reset();
@@ -1016,7 +1022,9 @@ class QueryBuilder {
             `${this.driver.escapeIdentifier(field)} = VALUES(${this.driver.escapeIdentifier(field)})`
         );
 
-        const sql = `INSERT INTO ${this.driver.escapeIdentifier(table)} (${escapedFields.join(', ')}) VALUES (${placeholders}) ON DUPLICATE KEY UPDATE ${updateClauses.join(', ')}`;
+        const sql = `INSERT INTO ${this.driver.escapeIdentifier(table)} (${escapedFields.join(', ')})
+                     VALUES (${placeholders})
+                     ON DUPLICATE KEY UPDATE ${updateClauses.join(', ')}`;
 
         const result = await this.executeQuery(sql, values);
         this.reset();
@@ -1039,7 +1047,9 @@ class QueryBuilder {
 
         const escapedConflictColumns = conflictColumns.map(col => this.driver.escapeIdentifier(col));
 
-        let sql = `INSERT INTO ${this.driver.escapeIdentifier(table)} (${escapedFields.join(', ')}) VALUES (${placeholders}) ON CONFLICT (${escapedConflictColumns.join(', ')})`;
+        let sql = `INSERT INTO ${this.driver.escapeIdentifier(table)} (${escapedFields.join(', ')})
+                   VALUES (${placeholders})
+                   ON CONFLICT (${escapedConflictColumns.join(', ')})`;
 
         if (updateClauses.length > 0) {
             sql += ` DO UPDATE SET ${updateClauses.join(', ')}`;
@@ -1067,12 +1077,14 @@ class QueryBuilder {
         const escapedFields = fields.map(field => this.driver.escapeIdentifier(field));
         const placeholders = fields.map(() => '?').join(', ');
 
-        const sql = `REPLACE INTO ${this.driver.escapeIdentifier(table)} (${escapedFields.join(', ')}) VALUES (${placeholders})`;
+        const sql = `REPLACE INTO ${this.driver.escapeIdentifier(table)} (${escapedFields.join(', ')})
+                     VALUES (${placeholders})`;
 
         const result = await this.executeQuery(sql, values);
         this.reset();
         return result;
     }
+
 
     // ===============================
     // ✅ UPDATE METHODS MELHORADOS
@@ -1080,7 +1092,7 @@ class QueryBuilder {
 
     set(field, value = null) {
         if (typeof field === 'object' && field !== null) {
-            this.updateData = { ...this.updateData, ...field };
+            this.updateData = {...this.updateData, ...field};
         } else {
             this._validateFieldName(field);
             this.updateData = this.updateData || {};
@@ -1095,7 +1107,7 @@ class QueryBuilder {
         this._validateNotEmpty(expression, 'Expressão SET');
 
         this.updateData = this.updateData || {};
-        this.updateData[field] = { __raw: expression, __bindings: bindings };
+        this.updateData[field] = {__raw: expression, __bindings: bindings};
 
         return this;
     }
@@ -1126,7 +1138,8 @@ class QueryBuilder {
             }
         });
 
-        let sql = `UPDATE ${this.driver.escapeIdentifier(table)} SET ${setClauses.join(', ')}`;
+        let sql = `UPDATE ${this.driver.escapeIdentifier(table)}
+                   SET ${setClauses.join(', ')}`;
 
         if (this.whereClauses.length > 0) {
             sql += ` WHERE ${this.whereClauses.join(' ')}`;
@@ -1154,7 +1167,8 @@ class QueryBuilder {
             this.where(where);
         }
 
-        let sql = `UPDATE ${this.driver.escapeIdentifier(table)} SET ${this.driver.escapeIdentifier(field)} = ${this.driver.escapeIdentifier(field)} + ?`;
+        let sql = `UPDATE ${this.driver.escapeIdentifier(table)}
+                   SET ${this.driver.escapeIdentifier(field)} = ${this.driver.escapeIdentifier(field)} + ?`;
 
         if (this.whereClauses.length > 0) {
             sql += ` WHERE ${this.whereClauses.join(' ')}`;
@@ -1169,6 +1183,7 @@ class QueryBuilder {
     async decrement(table, field, amount = 1, where = null) {
         return this.increment(table, field, -Math.abs(amount), where);
     }
+
 
     // ===============================
     // ✅ DELETE METHODS MELHORADOS
@@ -1188,7 +1203,8 @@ class QueryBuilder {
             throw new Error('Tabela é obrigatória para operação DELETE');
         }
 
-        let sql = `DELETE FROM ${this.fromTable}`;
+        let sql = `DELETE
+                   FROM ${this.fromTable}`;
 
         if (this.whereClauses.length > 0) {
             sql += ` WHERE ${this.whereClauses.join(' ')}`;
@@ -1219,6 +1235,7 @@ class QueryBuilder {
         return result;
     }
 
+
     // ===============================
     // ✅ TRANSACTION SUPPORT
     // ===============================
@@ -1228,71 +1245,47 @@ class QueryBuilder {
 
         const isNestedTransaction = this.inTransaction;
 
-        if (!isNestedTransaction) {
-            await this.beginTransaction();
-        }
+        if (!isNestedTransaction) await this.beginTransaction();
 
         try {
             this.transactionDepth++;
             const result = await callback(this);
 
-            if (!isNestedTransaction) {
-                await this.commit();
-            }
+            if (!isNestedTransaction) await this.commitTransaction();
 
             return result;
-
         } catch (error) {
-            if (!isNestedTransaction) {
-                await this.rollback();
-            }
+            if (!isNestedTransaction) await this.rollbackTransaction();
             throw error;
         } finally {
             this.transactionDepth--;
-            if (this.transactionDepth === 0) {
-                this.inTransaction = false;
-            }
+            if (this.transactionDepth === 0) this.inTransaction = false;
         }
     }
 
     async beginTransaction() {
-        const sql = this.driverType === 'postgres' || this.driverType === 'postgresql' ? 'BEGIN' : 'START TRANSACTION';
-        await this.executeQuery(sql, []);
+        if (this.inTransaction) throw new Error('Já existe uma transação iniciada.');
+        await this.driver.beginTransaction();
         this.inTransaction = true;
-        this.transactionDepth = 1;
-
-        if (this.DEBUG) {
-            console.log(`🔄 Transação iniciada [${this.queryBuilderId}]`);
-        }
+        if (this.DEBUG) console.log('🔄 Transação iniciada na QueryBuilder');
     }
 
-    async commit() {
-        if (!this.inTransaction) {
-            throw new Error('Nenhuma transação ativa para commit');
-        }
 
-        await this.executeQuery('COMMIT', []);
+    async commitTransaction() {
+        if (!this.inTransaction) throw new Error('Nenhuma transação está ativa para confirmar.');
+        await this.driver.commitTransaction();
         this.inTransaction = false;
-        this.transactionDepth = 0;
-
-        if (this.DEBUG) {
-            console.log(`✅ Transação commitada [${this.queryBuilderId}]`);
-        }
+        if (this.DEBUG) console.log('✅ Transação confirmada na QueryBuilder');
     }
 
-    async rollback() {
-        if (!this.inTransaction) {
-            throw new Error('Nenhuma transação ativa para rollback');
-        }
 
-        await this.executeQuery('ROLLBACK', []);
+    async rollbackTransaction() {
+        if (!this.inTransaction) throw new Error('Nenhuma transação está ativa para reverter.');
+        await this.driver.rollbackTransaction();
         this.inTransaction = false;
-        this.transactionDepth = 0;
-
-        if (this.DEBUG) {
-            console.log(`🔄 Transação revertida [${this.queryBuilderId}]`);
-        }
+        if (this.DEBUG) console.log('⛔ Transação revertida na QueryBuilder');
     }
+
 
     // ===============================
     // ✅ UTILITY METHODS MELHORADOS
@@ -1331,7 +1324,7 @@ class QueryBuilder {
         cloned.offsetValue = this.offsetValue;
         cloned.distinctFlag = this.distinctFlag;
         cloned.params = [...this.params];
-        cloned.updateData = this.updateData ? { ...this.updateData } : null;
+        cloned.updateData = this.updateData ? {...this.updateData} : null;
         cloned.cteQueries = [...this.cteQueries];
         cloned.subqueries = [...this.subqueries];
 
@@ -1491,6 +1484,7 @@ class QueryBuilder {
         }
     }
 
+
     // ===============================
     // ✅ MÉTODOS AUXILIARES
     // ===============================
@@ -1601,6 +1595,7 @@ class QueryBuilder {
         }
         console.error(`💥 Erro: ${error.message}`);
     }
+
 
     // ===============================
     // ✅ MÉTODOS DE INFORMAÇÃO

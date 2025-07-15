@@ -40,7 +40,7 @@ class Database {
         }
     }
 
-    // Métodos de conveniência que retornam uma nova instância do QueryBuilder
+
     select(fields = '*') {
         this.ensureConnected();
         return new QueryBuilder(this.connection, this.config.driver, this.config).select(fields);
@@ -55,6 +55,7 @@ class Database {
         this.ensureConnected();
         return new QueryBuilder(this.connection, this.config.driver, this.config).where(field, value, operator);
     }
+
 
     async insert(table, data) {
         this.ensureConnected();
@@ -75,6 +76,7 @@ class Database {
         this.ensureConnected();
         return await new QueryBuilder(this.connection, this.config.driver, this.config).query(sql, params);
     }
+
 
     ensureConnected() {
         if (!this.connection) {
@@ -153,16 +155,6 @@ class Database {
         return true; // MySQL não tem schemas separados
     }
 
-    // Criar schema se não existir (PostgreSQL)
-    async createSchemaIfNotExists() {
-        if (this.config.driver === 'postgres') {
-            this.ensureConnected();
-            const builder = new QueryBuilder(this.connection, this.config.driver, this.config);
-            return await builder.driver.createSchemaIfNotExists();
-        }
-        return true; // MySQL não precisa criar schema
-    }
-
     // Executar script SQL (múltiplas queries)
     async executeScript(script) {
         this.ensureConnected();
@@ -184,11 +176,10 @@ class Database {
         return results;
     }
 
+
     // Método para debug - mostrar último SQL executado
     getLastQuery() {
-        if (this.queryBuilder) {
-            return this.queryBuilder.getLastQuery();
-        }
+        if (this.queryBuilder) return this.queryBuilder.getLastQuery();
         return null;
     }
 
