@@ -40,6 +40,9 @@ class Database {
         }
     }
 
+    async isConnected() {
+        return Boolean(this.connection);
+    }
 
     select(fields = '*') {
         this.ensureConnected();
