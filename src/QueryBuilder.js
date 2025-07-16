@@ -6,8 +6,8 @@ import MariadbDriver from "./drivers/MariadbDriver.js";
 class QueryBuilder {
     constructor(connection, driverType, config = {}) {
         this.connection = connection;
-        this.config = config;
         this.driverType = driverType;
+        this.config = config;
         this.driver = this.createDriver(driverType, config);
 
         // ✅ Sistema de ID único para rastreamento
@@ -15,7 +15,7 @@ class QueryBuilder {
 
         // ✅ Cache de queries compiladas
         this.queryCache = new Map();
-        this.maxCacheSize = config.maxQueryCache || 50;
+        this.maxCacheSize = config?.maxQueryCache || 50;
 
         // ✅ Métricas do QueryBuilder
         this.metrics = {

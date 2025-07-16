@@ -4,8 +4,6 @@ class MySQLDriver {
         this.config = config;
         this.isPool = !!config.max;
         this.DEBUG = config.debug || false;
-        this.errorDepth = 0;
-        this.maxErrorDepth = 10;
     }
 
     escapeIdentifier(identifier) {
@@ -50,7 +48,6 @@ class MySQLDriver {
     }
 
     async execute(sql, params = []) {
-        if (this.errorDepth > this.maxErrorDepth) throw new Error('Stack overflow detectado - muitos erros aninhados');
         try {
             if (this.DEBUG) {
                 console.log('🔍 MySQL SQL Debug:', sql);

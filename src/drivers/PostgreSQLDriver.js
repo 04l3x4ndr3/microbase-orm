@@ -4,8 +4,6 @@ class PostgreSQLDriver {
         this.config = config;
         this.isPool = !!config.max;
         this.DEBUG = config.debug || false;
-        this.errorDepth = 0;
-        this.maxErrorDepth = 10;
 
         this.driverId = this.generateDriverId();
         this.schema = this.extractSchemaFromOptions(config.options);
@@ -132,7 +130,6 @@ class PostgreSQLDriver {
     }
 
     async execute(sql, params = []) {
-        if (this.errorDepth > this.maxErrorDepth) throw new Error('Stack overflow detectado - muitos erros aninhados');
         try {
             const _sql = this._convertPlaceholders(sql);
             if (this.DEBUG) {
@@ -229,155 +226,138 @@ class PostgreSQLDriver {
     }
 
     _handleDBError(error, sql, queryId = null) {
-        this.errorDepth++;
+        const errorCode = error.code || 'UNKNOWN';
+        const errorMessage = String(error.message || error.toString() || 'Erro desconhecido');
+        const hint = error.hint || '';
+        const logPrefix = queryId ? `[${queryId}]` : '';
 
-        try {
-            const errorCode = error.code || 'UNKNOWN';
-            const errorMessage = String(error.message || error.toString() || 'Erro desconhecido');
-            const severity = error.severity || 'ERROR';
-            const detail = error.detail || '';
-            const hint = error.hint || '';
+        switch (errorCode) {
+            case '42P01': // undefined_table
+                return new Error(`Tabela não encontrada ${logPrefix}: Schema '${this.schema}' - ${errorMessage}`);
 
-            const logPrefix = queryId ? `[${queryId}]` : '';
+            case '42703': // undefined_column
+                const columnMatch = errorMessage.match(/column "(.+)" does not exist/);
+                if (columnMatch) {
+                    return new Error(`Coluna não encontrada ${logPrefix}: '${columnMatch[1]}' - ${hint || 'Verifique o nome da coluna'}`);
+                }
+                return new Error(`Coluna não encontrada ${logPrefix}: ${errorMessage}`);
 
-            switch (errorCode) {
-                case '42P01': // undefined_table
-                    return new Error(`Tabela não encontrada ${logPrefix}: Schema '${this.schema}' - ${errorMessage}`);
+            case '3F000': // invalid_schema_name
+                return new Error(`Schema inválido ${logPrefix}: '${this.schema}' não encontrado - ${errorMessage}`);
 
-                case '42703': // undefined_column
-                    const columnMatch = errorMessage.match(/column "(.+)" does not exist/);
-                    if (columnMatch) {
-                        return new Error(`Coluna não encontrada ${logPrefix}: '${columnMatch[1]}' - ${hint || 'Verifique o nome da coluna'}`);
-                    }
-                    return new Error(`Coluna não encontrada ${logPrefix}: ${errorMessage}`);
+            case '23505': // unique_violation
+                const uniqueMatch = errorMessage.match(/Key \((.+)\)=\((.+)\) already exists/);
+                if (uniqueMatch) {
+                    return new Error(`Violação de chave única ${logPrefix}: Campo(s) '${uniqueMatch[1]}' com valor '${uniqueMatch[2]}' já existe`);
+                }
+                return new Error(`Violação de chave única ${logPrefix}: ${errorMessage}`);
 
-                case '3F000': // invalid_schema_name
-                    return new Error(`Schema inválido ${logPrefix}: '${this.schema}' não encontrado - ${errorMessage}`);
+            case '23503': // foreign_key_violation
+                const fkMatch = errorMessage.match(/Key \((.+)\)=\((.+)\) is not present in table "(.+)"/);
+                if (fkMatch) {
+                    return new Error(`Violação de chave estrangeira ${logPrefix}: Valor '${fkMatch[2]}' para '${fkMatch[1]}' não existe na tabela '${fkMatch[3]}'`);
+                }
+                return new Error(`Violação de chave estrangeira ${logPrefix}: ${errorMessage}`);
 
-                case '23505': // unique_violation
-                    const uniqueMatch = errorMessage.match(/Key \((.+)\)=\((.+)\) already exists/);
-                    if (uniqueMatch) {
-                        return new Error(`Violação de chave única ${logPrefix}: Campo(s) '${uniqueMatch[1]}' com valor '${uniqueMatch[2]}' já existe`);
-                    }
-                    return new Error(`Violação de chave única ${logPrefix}: ${errorMessage}`);
+            case '23502': // not_null_violation
+                const nullMatch = errorMessage.match(/null value in column "(.+)" violates not-null constraint/);
+                if (nullMatch) {
+                    return new Error(`Campo obrigatório ${logPrefix}: '${nullMatch[1]}' não pode ser NULL`);
+                }
+                return new Error(`Violação de NOT NULL ${logPrefix}: ${errorMessage}`);
 
-                case '23503': // foreign_key_violation
-                    const fkMatch = errorMessage.match(/Key \((.+)\)=\((.+)\) is not present in table "(.+)"/);
-                    if (fkMatch) {
-                        return new Error(`Violação de chave estrangeira ${logPrefix}: Valor '${fkMatch[2]}' para '${fkMatch[1]}' não existe na tabela '${fkMatch[3]}'`);
-                    }
-                    return new Error(`Violação de chave estrangeira ${logPrefix}: ${errorMessage}`);
+            case '22001': // string_data_right_truncation
+                return new Error(`Dados muito longos ${logPrefix}: ${errorMessage} - ${hint}`);
 
-                case '23502': // not_null_violation
-                    const nullMatch = errorMessage.match(/null value in column "(.+)" violates not-null constraint/);
-                    if (nullMatch) {
-                        return new Error(`Campo obrigatório ${logPrefix}: '${nullMatch[1]}' não pode ser NULL`);
-                    }
-                    return new Error(`Violação de NOT NULL ${logPrefix}: ${errorMessage}`);
+            case '22P02': // invalid_text_representation
+                return new Error(`Formato de dados inválido ${logPrefix}: ${errorMessage}`);
 
-                case '22001': // string_data_right_truncation
-                    return new Error(`Dados muito longos ${logPrefix}: ${errorMessage} - ${hint}`);
+            case '23514': // check_violation
+                return new Error(`Violação de constraint CHECK ${logPrefix}: ${errorMessage}`);
 
-                case '22P02': // invalid_text_representation
-                    return new Error(`Formato de dados inválido ${logPrefix}: ${errorMessage}`);
+            // Erros de conexão
+            case '08006': // connection_failure
+                return new Error(`Falha na conexão PostgreSQL ${logPrefix}: ${errorMessage}`);
 
-                case '23514': // check_violation
-                    return new Error(`Violação de constraint CHECK ${logPrefix}: ${errorMessage}`);
+            case '08001': // sqlclient_unable_to_establish_sqlconnection
+                return new Error(`Não foi possível estabelecer conexão PostgreSQL ${logPrefix}: ${errorMessage}`);
 
-                // Erros de conexão
-                case '08006': // connection_failure
-                    return new Error(`Falha na conexão PostgreSQL ${logPrefix}: ${errorMessage}`);
+            case '08003': // connection_does_not_exist
+                return new Error(`Conexão PostgreSQL não existe ${logPrefix}: ${errorMessage}`);
 
-                case '08001': // sqlclient_unable_to_establish_sqlconnection
-                    return new Error(`Não foi possível estabelecer conexão PostgreSQL ${logPrefix}: ${errorMessage}`);
+            case '08004': // sqlserver_rejected_establishment_of_sqlconnection
+                return new Error(`Servidor PostgreSQL rejeitou a conexão ${logPrefix}: ${errorMessage}`);
 
-                case '08003': // connection_does_not_exist
-                    return new Error(`Conexão PostgreSQL não existe ${logPrefix}: ${errorMessage}`);
+            // Erros de autenticação
+            case '28P01': // invalid_password
+                return new Error(`Senha inválida PostgreSQL ${logPrefix}: ${errorMessage}`);
 
-                case '08004': // sqlserver_rejected_establishment_of_sqlconnection
-                    return new Error(`Servidor PostgreSQL rejeitou a conexão ${logPrefix}: ${errorMessage}`);
+            case '28000': // invalid_authorization_specification
+                return new Error(`Especificação de autorização inválida ${logPrefix}: ${errorMessage}`);
 
-                // Erros de autenticação
-                case '28P01': // invalid_password
-                    return new Error(`Senha inválida PostgreSQL ${logPrefix}: ${errorMessage}`);
+            // Erros de banco/schema
+            case '3D000': // invalid_catalog_name
+                return new Error(`Banco de dados não encontrado ${logPrefix}: ${errorMessage}`);
 
-                case '28000': // invalid_authorization_specification
-                    return new Error(`Especificação de autorização inválida ${logPrefix}: ${errorMessage}`);
+            case '42P06': // duplicate_schema
+                return new Error(`Schema já existe ${logPrefix}: ${errorMessage}`);
 
-                // Erros de banco/schema
-                case '3D000': // invalid_catalog_name
-                    return new Error(`Banco de dados não encontrado ${logPrefix}: ${errorMessage}`);
+            case '2BP01': // dependent_objects_still_exist
+                return new Error(`Não é possível remover: objetos dependentes ainda existem ${logPrefix}: ${errorMessage}`);
 
-                case '42P06': // duplicate_schema
-                    return new Error(`Schema já existe ${logPrefix}: ${errorMessage}`);
+            // Erros de sintaxe
+            case '42601': // syntax_error
+                return new Error(`Erro de sintaxe SQL ${logPrefix}: ${errorMessage}\nSQL: ${sql}`);
 
-                case '2BP01': // dependent_objects_still_exist
-                    return new Error(`Não é possível remover: objetos dependentes ainda existem ${logPrefix}: ${errorMessage}`);
+            case '42804': // datatype_mismatch
+                return new Error(`Incompatibilidade de tipos ${logPrefix}: ${errorMessage}`);
 
-                // Erros de sintaxe
-                case '42601': // syntax_error
-                    return new Error(`Erro de sintaxe SQL ${logPrefix}: ${errorMessage}\nSQL: ${sql}`);
+            case '42883': // undefined_function
+                return new Error(`Função não definida ${logPrefix}: ${errorMessage}`);
 
-                case '42804': // datatype_mismatch
-                    return new Error(`Incompatibilidade de tipos ${logPrefix}: ${errorMessage}`);
+            // Erros de transação
+            case '25P02': // in_failed_sql_transaction
+                return new Error(`Transação em estado falho ${logPrefix}: Execute ROLLBACK primeiro`);
 
-                case '42883': // undefined_function
-                    return new Error(`Função não definida ${logPrefix}: ${errorMessage}`);
+            case '40001': // serialization_failure
+                return new Error(`Falha de serialização ${logPrefix}: Deadlock detectado - ${errorMessage}`);
 
-                // Erros de transação
-                case '25P02': // in_failed_sql_transaction
-                    return new Error(`Transação em estado falho ${logPrefix}: Execute ROLLBACK primeiro`);
+            case '40P01': // deadlock_detected
+                return new Error(`Deadlock detectado ${logPrefix}: ${errorMessage}`);
 
-                case '40001': // serialization_failure
-                    return new Error(`Falha de serialização ${logPrefix}: Deadlock detectado - ${errorMessage}`);
+            // Erros de permissão
+            case '42501': // insufficient_privilege
+                return new Error(`Privilégios insuficientes ${logPrefix}: ${errorMessage}`);
 
-                case '40P01': // deadlock_detected
-                    return new Error(`Deadlock detectado ${logPrefix}: ${errorMessage}`);
+            // Erros específicos do PostgreSQL
+            case '22012': // division_by_zero
+                return new Error(`Divisão por zero ${logPrefix}: ${errorMessage}`);
 
-                // Erros de permissão
-                case '42501': // insufficient_privilege
-                    return new Error(`Privilégios insuficientes ${logPrefix}: ${errorMessage}`);
+            case '2200C': // invalid_use_of_escape_character
+                return new Error(`Uso inválido de caractere de escape ${logPrefix}: ${errorMessage}`);
 
-                // Erros específicos do PostgreSQL
-                case '22012': // division_by_zero
-                    return new Error(`Divisão por zero ${logPrefix}: ${errorMessage}`);
+            case '22025': // invalid_escape_sequence
+                return new Error(`Sequência de escape inválida ${logPrefix}: ${errorMessage}`);
 
-                case '2200C': // invalid_use_of_escape_character
-                    return new Error(`Uso inválido de caractere de escape ${logPrefix}: ${errorMessage}`);
+            case '22008': // datetime_field_overflow
+                return new Error(`Overflow em campo de data/hora ${logPrefix}: ${errorMessage}`);
 
-                case '22025': // invalid_escape_sequence
-                    return new Error(`Sequência de escape inválida ${logPrefix}: ${errorMessage}`);
+            case '22007': // invalid_datetime_format
+                return new Error(`Formato de data/hora inválido ${logPrefix}: ${errorMessage}`);
 
-                case '22008': // datetime_field_overflow
-                    return new Error(`Overflow em campo de data/hora ${logPrefix}: ${errorMessage}`);
+            // Erros de JSON
+            case '22032': // invalid_json_text
+                return new Error(`JSON inválido ${logPrefix}: ${errorMessage}`);
 
-                case '22007': // invalid_datetime_format
-                    return new Error(`Formato de data/hora inválido ${logPrefix}: ${errorMessage}`);
+            case '22033': // invalid_sql_json_subscript
+                return new Error(`Subscript JSON inválido ${logPrefix}: ${errorMessage}`);
 
-                // Erros de JSON
-                case '22032': // invalid_json_text
-                    return new Error(`JSON inválido ${logPrefix}: ${errorMessage}`);
+            // Erros de array
+            case '2202E': // array_subscript_error
+                return new Error(`Erro de subscript de array ${logPrefix}: ${errorMessage}`);
 
-                case '22033': // invalid_sql_json_subscript
-                    return new Error(`Subscript JSON inválido ${logPrefix}: ${errorMessage}`);
-
-                // Erros de array
-                case '2202E': // array_subscript_error
-                    return new Error(`Erro de subscript de array ${logPrefix}: ${errorMessage}`);
-
-                default:
-                    console.error(`❌ PostgreSQL Error desconhecido ${logPrefix}:`, {
-                        code: errorCode,
-                        severity,
-                        message: errorMessage,
-                        detail,
-                        hint,
-                        sql: sql
-                    });
-                    return new Error(fullMessage);
-            }
-        } finally {
-            this.errorDepth--;
+            default:
+                return new Error(errorMessage);
         }
     }
 
